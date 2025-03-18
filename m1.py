@@ -19,7 +19,7 @@ class DataProc(tk.Tk):
         self.kindergartens_file = ""
         self.R = 0.0
         self.create_widgets()
-        self.norm_reg = 0.0
+        self.norm_reg = 0.055
         try:
             self.iconbitmap('icon.ico')  # Для Windows
         except:
@@ -241,8 +241,14 @@ class DataProc(tk.Tk):
                     color='black'
                 )
 
+        r = self.R
+        if r.is_integer():
+            r_str = f"{int(r)}"
+        else:
+            r_str = f"{r:.1f}".replace('.', ',')
+
         plt.axvline(weighted_avg, color='red', linewidth=4, label=f'Среднее: {weighted_avg:.4f}')
-        plt.axvline(0.112, color='green', linewidth=4, label='Нормативное: 0,112')
+        plt.axvline(self.norm_reg, color='green', linewidth=4, label=f'Нормативное: {self.norm_reg}')
         settlement = kgs['capacity'].sum() / houses['population'].sum()
         plt.axvline(settlement, color='blue', linewidth=4, label=f'Расчетное: {settlement:.4f}')
 
@@ -255,11 +261,11 @@ class DataProc(tk.Tk):
         plt.grid(True, linestyle='--', alpha=0.7)
         plt.legend(fontsize=12)
         plt.tight_layout()
-        plt.savefig('provision_histogram.png', dpi=300, bbox_inches='tight')
+        plt.savefig(f'provision_histogram_{r_str}.png', dpi=300, bbox_inches='tight')
         plt.close(1)
 
-        houses.to_csv("result_houses.csv", index=False)
-        kgs.to_csv("result_kindergartens.csv", index=False)
+        houses.to_csv(f"result_houses_{r_str}.csv", index=False)
+        kgs.to_csv(f"result_kindergartens_{r_str}.csv", index=False)
         self.log_message(f'Конец базового расчета.')
 
     def run_optimization(self):
@@ -402,6 +408,12 @@ class DataProc(tk.Tk):
     def save_final_results(self, best_R):
         self.log_message("Сохранение финальных результатов...")
 
+        r = self.R
+        if r.is_integer():
+            r_str = f"{int(r)}"
+        else:
+            r_str = f"{r:.1f}".replace('.', ',')
+
         try:
             original_mode = self.mode_var.get()
             original_R = self.R_entry.get()
@@ -411,8 +423,8 @@ class DataProc(tk.Tk):
             self.R_entry.insert(0, str(best_R))
             self.run_basic_calculation()
 
-            houses = pd.read_csv("result_houses.csv", dtype={'id': str})
-            kgs = pd.read_csv("result_kindergartens.csv", dtype={'id': str})
+            houses = pd.read_csv(f"result_houses_{r_str}.csv", dtype={'id': str})
+            kgs = pd.read_csv(f"result_kindergartens_{r_str}.csv", dtype={'id': str})
 
             if 'obespech' not in houses.columns:
                 raise ValueError("Столбец 'obespech' отсутствует в результатах")
@@ -444,8 +456,8 @@ class DataProc(tk.Tk):
 
             plt.axvline(weighted_avg, color='red', lw=4,
                          label=f'Среднее: {weighted_avg:.4f}')
-            plt.axvline(0.112, color='green', lw=4,
-                        label='Нормативное: 0,055')
+            plt.axvline(self.norm_reg, color='green', lw=4,
+                        label=f'Нормативное: {self.norm_reg}')
             plt.axvline(settlement, color='blue', lw=4,
                         label=f'Расчетное: {settlement:.4f}')
 
@@ -539,14 +551,6 @@ class DataProc(tk.Tk):
             }
         )
         plt.close(2)
-
-    def log_success(self, houses, kgs):
-        self.log_message(
-            "Результаты успешно сохранены:\n"
-            f"- result_houses.csv ({len(houses)} записей)\n"
-            f"- result_kindergartens.csv ({len(kgs)} записей)\n"
-            f"- provision_histogram.png ({os.path.getsize('provision_histogram.png') // 1024} КБ)"
-        )
 
 if __name__ == "__main__":
     app = DataProc()
